@@ -4,7 +4,7 @@
 
 - 示例站点：`https://guide.aiziyou.org`
 - 镜像：`850002292/sub2api-guide`
-- 私有源码仓库：`liu850002292/token_guide_ll`
+- 公开源码仓库：`liu850002292/token_guide_ll`
 - 无路径前缀（不用 `/guide`、`/guide-api`）
 
 ## 功能
@@ -22,19 +22,27 @@
 
 ## 本机部署
 
+服务器需先安装 Docker、Docker Compose 和 curl，无需安装 GitHub CLI。一键安装并启动：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/liu850002292/token_guide_ll/main/scripts/install-guide.sh \
+  | bash -s -- --install-dir /opt/token-guide --port 3000
+```
+
+也可以先准备部署文件，再手动启动：
+
 ```bash
 mkdir -p sub2api-guide-deploy && cd sub2api-guide-deploy
-gh auth login
-gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh -H 'Accept: application/vnd.github.raw+json' | bash
+curl -fsSL https://raw.githubusercontent.com/liu850002292/token_guide_ll/main/deploy/docker-deploy.sh | bash
 docker compose up -d
 docker compose logs -f guide
 ```
 
 准备脚本会生成 `docker-compose.yml`、`.env`（含管理员密钥）和 `data/` 目录，并打印 `NUXT_ADMIN_TOKEN`。
 
-源码仓库为私有仓库，部署服务器的 GitHub CLI 账号需要有仓库读取权限。
+源码和部署模板支持公开下载，无需 GitHub 登录。
 也可以先克隆仓库，再从独立部署目录运行仓库中的 `deploy/docker-deploy.sh`。
-Docker Hub 镜像供部署服务器拉取，私有源码不会通过部署链接公开。
+部署服务器从 Docker Hub 拉取 `850002292/sub2api-guide` 镜像。
 
 ```text
 127.0.0.1:3000  →  容器 3000

@@ -2,7 +2,7 @@
 # 本机部署准备脚本（不远程 SSH）：下载 compose / env 模板，生成密钥，创建数据目录。
 # 用法：
 #   mkdir -p sub2api-guide-deploy && cd sub2api-guide-deploy
-#   gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh -H 'Accept: application/vnd.github.raw+json' | bash
+#   curl -fsSL https://raw.githubusercontent.com/liu850002292/token_guide_ll/main/deploy/docker-deploy.sh | bash
 #   docker compose up -d
 set -euo pipefail
 
@@ -23,6 +23,19 @@ random_hex() {
 download() {
   local url="$1"
   local dest="$2"
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsSL "$url" -o "$dest"; then
+      return
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    if wget -qO "$dest" "$url"; then
+      return
+    fi
+  else
+    echo "需要 curl 或 wget。" >&2
+    return 1
+  fi
+
   if [[ "$url" =~ ^https://raw.githubusercontent.com/([^/]+/[^/]+)/([^/]+)/(.*)$ ]]; then
     local repository="${BASH_REMATCH[1]}"
     local ref="${BASH_REMATCH[2]}"
@@ -39,17 +52,11 @@ download() {
           "https://api.github.com/repos/${repository}/contents/${path}?ref=${ref}" -o "$dest"
       return
     fi
-    echo "私有仓库需要先执行 gh auth login，或导出只读 GITHUB_TOKEN。" >&2
-    return 1
-  fi
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url" -o "$dest"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$dest" "$url"
+    echo "下载失败；若仓库为私有，请先执行 gh auth login，或导出只读 GITHUB_TOKEN。" >&2
   else
-    echo "需要 curl 或 wget。" >&2
-    exit 1
+    echo "下载失败：${url}" >&2
   fi
+  return 1
 }
 
 set_env_value() {

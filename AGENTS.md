@@ -40,8 +40,7 @@ gh workflow run release.yml -f version=v2.2.13 -f publish_latest=true
 本机部署准备：
 
 ```bash
-gh auth login
-gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh -H 'Accept: application/vnd.github.raw+json' | bash
+curl -fsSL https://raw.githubusercontent.com/liu850002292/token_guide_ll/main/deploy/docker-deploy.sh | bash
 docker compose up -d
 ```
 

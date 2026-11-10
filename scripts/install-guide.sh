@@ -36,9 +36,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 [[ -n "${INSTALL_DIR}" ]] || INSTALL_DIR="$(pwd)"
 command -v docker >/dev/null 2>&1 || { echo "Docker is required." >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo "curl is required." >&2; exit 1; }
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE=(docker compose)
@@ -57,9 +58,18 @@ export IMAGE_REPOSITORY IMAGE_TAG="${VERSION}" HOST_PORT="${PORT}" HOST_BIND_ADD
 if [[ -f "${SCRIPT_DIR}/../deploy/docker-deploy.sh" ]]; then
   bash "${SCRIPT_DIR}/../deploy/docker-deploy.sh"
 else
-  command -v gh >/dev/null 2>&1 || { echo "Private repository access requires GitHub CLI. Run gh auth login first." >&2; exit 1; }
-  gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh \
-    -H 'Accept: application/vnd.github.raw+json' | bash
+  DEPLOY_SCRIPT="$(mktemp)"
+  trap 'rm -f "$DEPLOY_SCRIPT"' EXIT
+  if curl -fsSL https://raw.githubusercontent.com/liu850002292/token_guide_ll/main/deploy/docker-deploy.sh -o "$DEPLOY_SCRIPT"; then
+    :
+  elif command -v gh >/dev/null 2>&1; then
+    gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh \
+      -H 'Accept: application/vnd.github.raw+json' > "$DEPLOY_SCRIPT"
+  else
+    echo "Download failed. Check GitHub connectivity; private repositories require gh auth login." >&2
+    exit 1
+  fi
+  bash "$DEPLOY_SCRIPT"
 fi
 
 echo "Pulling image..."
