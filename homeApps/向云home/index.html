@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Token向云 · 一个接口，连接主流 AI</title>
+    <meta name="msvalidate.01" content="1CC819D182383CCB0CEA25371085D02D" />
+    <meta name="description" content="通过 Token向云统一接入 Claude、GPT、Gemini，管理 API 密钥与用量。兼容 OpenAI 接口，按量使用。" />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0b0d0c" />
+    <link rel="canonical" href="https://kkflow.org/" />
+    <link rel="icon" type="image/png" href="./assets/logo-80.png" />
+    <link rel="apple-touch-icon" href="./assets/logo-256.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="Token向云" />
+    <meta property="og:title" content="Token向云 · 一个接口，连接主流 AI" />
+    <meta property="og:description" content="统一接入 Claude、GPT、Gemini。一个接口，连接主流 AI。" />
+    <meta property="og:url" content="https://kkflow.org/" />
+    <meta property="og:image" content="./assets/logo-256.png" />
+    <link rel="preload" href="./assets/fonts/lora-brand.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./assets/fonts/wenkai-brand.ttf" as="font" type="font/ttf" crossorigin />
+    <style>
+      @font-face {
+        font-family: "Token Lora";
+        src: url("./assets/fonts/lora-brand.ttf") format("truetype");
+        font-style: italic;
+        font-weight: 500;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Token WenKai";
+        src: url("./assets/fonts/wenkai-brand.ttf") format("truetype");
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", "PingFang SC", "DengXian", "Microsoft YaHei", sans-serif;
+        color: #f2f4f1;
+        background: #0b0d0c;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      * { box-sizing: border-box; letter-spacing: 0; }
+      body { margin: 0; }
+      a { color: inherit; text-decoration: none; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      a:focus-visible { outline: 2px solid #d6efbf; outline-offset: 6px; }
+
+      .tx-hero {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        height: 100svh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+        background: #0b0d0c;
+        user-select: none;
+      }
+
+      .tx-hero-fluid {
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        width: 100%;
+        height: 100%;
+        opacity: 0.96;
+        filter: saturate(1.35) contrast(1.1) brightness(1.08);
+        pointer-events: none;
+      }
+
+      .tx-hero-fluid[hidden] { display: none; }
+
+      .tx-topbar, .tx-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin: 0 48px;
+      }
+
+      .tx-topbar {
+        min-height: 88px;
+        padding-top: env(safe-area-inset-top);
+      }
+
+      .tx-brand { display: inline-flex; align-items: center; gap: 11px; }
+      .tx-brand img { width: 32px; height: 32px; border-radius: 7px; }
+      .tx-brand span { font-size: 15px; font-weight: 400; }
+      .tx-nav { display: flex; align-items: center; gap: 30px; font-size: 13px; white-space: nowrap; }
+      .tx-nav a { color: #edf3edb3; transition: color 160ms; }
+      .tx-nav a:hover { color: #fff; }
+      .tx-nav .tx-login { color: #f2f4f1; border-left: 1px solid #ffffff26; padding-left: 30px; }
+
+      .tx-content {
+        position: relative;
+        isolation: isolate;
+        align-self: center;
+        width: 100%;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .tx-models {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        margin: 0 0 26px;
+        color: #cbd1cb;
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      .tx-models i { width: 3px; height: 3px; border-radius: 50%; background: #bac6b4; }
+      h1 {
+        margin: 0;
+        font-size: 80px;
+        line-height: 1.2;
+        font-family: "Token Lora", Georgia, serif;
+        font-style: italic;
+        font-weight: 500;
+        color: #f2f4f1ed;
+        text-shadow: 0 2px 20px #0007;
+      }
+      h1 span {
+        display: inline-block;
+        margin-left: 16px;
+        font-family: "Token WenKai", "DengXian", sans-serif;
+        font-size: 0.94em;
+        font-style: normal;
+        font-weight: 400;
+        transform: rotate(-3deg);
+      }
+      .tx-description { margin: 25px 0 0; font-size: 20px; line-height: 1.7; font-weight: 400; color: #e0e6de; text-shadow: 0 1px 10px #000b; }
+      .tx-detail { margin: 12px 0 0; color: #b7c0b5; font-size: 13px; line-height: 1.7; text-shadow: 0 1px 8px #000b; }
+      .tx-actions { display: flex; justify-content: center; gap: 12px; margin-top: 36px; }
+      .tx-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 136px;
+        height: 46px;
+        padding: 0 24px;
+        border: 1px solid #ffffff29;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 400;
+        background: #ffffff0d;
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+        transition: background 160ms, border-color 160ms;
+      }
+
+      .tx-button:hover { background: #ffffff16; border-color: #ffffff50; }
+      .tx-primary { background: #d6efbfcf; border-color: #e4f7d580; color: #162012; }
+      .tx-primary:hover { background: #e4f7d5ed; border-color: #e4f7d5b3; }
+      .tx-footer {
+        min-height: 76px;
+        border-top: 1px solid #ffffff15;
+        padding: 16px 0 max(16px, env(safe-area-inset-bottom));
+        font-size: 11px;
+        color: #969f97;
+      }
+
+      .tx-footer p { margin: 0; color: #969f9799; }
+      .tx-endpoint { display: flex; align-items: center; gap: 12px; }
+      .tx-endpoint code { user-select: text; font-family: Consolas, "SFMono-Regular", monospace; font-size: 11px; color: #c3ccc1; }
+
+      @media (min-width: 1600px) {
+        .tx-topbar, .tx-footer { margin-inline: 64px; }
+        h1 { font-size: 92px; }
+      }
+
+      @media (max-width: 600px) {
+        .tx-topbar, .tx-footer { margin-inline: 22px; }
+        .tx-topbar { min-height: 72px; gap: 16px; }
+        .tx-brand { gap: 8px; }
+        .tx-brand img { width: 28px; height: 28px; }
+        .tx-brand span { font-size: 13px; }
+        .tx-nav { gap: 18px; font-size: 12px; }
+        .tx-nav .tx-login { padding-left: 18px; }
+        .tx-content { padding: 20px; }
+        .tx-models { margin-bottom: 24px; gap: 14px; font-size: 11px; }
+        h1 { font-size: 48px; }
+        h1 span { margin-left: 8px; }
+        .tx-description { margin-top: 20px; font-size: 17px; }
+        .tx-detail { margin-top: 10px; font-size: 12px; }
+        .tx-actions { margin-top: 30px; gap: 10px; }
+        .tx-button { min-width: 124px; height: 44px; padding-inline: 20px; font-size: 13px; }
+        .tx-footer { min-height: 84px; flex-direction: column-reverse; justify-content: center; gap: 12px; font-size: 10px; }
+        .tx-endpoint { gap: 10px; }
+        .tx-endpoint code { font-size: 10px; }
+      }
+
+      @media (max-width: 360px) {
+        .tx-topbar, .tx-footer { margin-inline: 16px; }
+        .tx-brand span { display: none; }
+        .tx-nav { gap: 12px; }
+        .tx-nav .tx-login { padding-left: 12px; }
+        .tx-button { min-width: 0; flex: 1; padding-inline: 12px; }
+        h1 { font-size: 42px; }
+      }
+
+      @media (max-height: 540px) {
+        .tx-topbar { min-height: 52px; }
+        .tx-content { padding-block: 10px; }
+        .tx-models { margin-bottom: 12px; }
+        h1 { font-size: 44px; }
+        .tx-description { margin-top: 12px; font-size: 16px; }
+        .tx-detail { margin-top: 6px; }
+        .tx-actions { margin-top: 18px; }
+        .tx-button { height: 40px; }
+        .tx-footer { min-height: 50px; padding-block: 10px; }
+      }
+
+      @media (max-height: 400px) {
+        .tx-models, .tx-detail { display: none; }
+        .tx-footer { min-height: 40px; flex-direction: row; }
+        .tx-endpoint > span { display: none; }
+        h1 { font-size: 36px; }
+        .tx-actions { margin-top: 12px; }
+      }
+    </style>
+    <script src="./assets/vendor/fluid.js" defer></script>
+    <script src="./assets/hero-fluid.js" defer></script>
+  </head>
+  <body>
+    <div class="tx-hero">
+      <canvas class="tx-hero-fluid" id="tx-hero-fluid" aria-hidden="true" hidden></canvas>
+      <header class="tx-topbar">
+        <a class="tx-brand" href="https://kkflow.org/" target="_top" rel="noopener" aria-label="Token向云首页">
+          <img src="./assets/logo-80.png" width="32" height="32" alt="" />
+          <span>Token向云</span>
+        </a>
+        <nav class="tx-nav" aria-label="主导航">
+          <a href="https://guide.kkflow.org/pricing">价格</a>
+          <a href="https://guide.kkflow.org/integration">文档</a>
+          <a class="tx-login" href="https://kkflow.org/login" target="_top" rel="noopener">登录</a>
+        </nav>
+      </header>
+      <main class="tx-content">
+        <p class="tx-models"><span>Claude</span><i aria-hidden="true"></i><span>GPT</span><i aria-hidden="true"></i><span>Gemini</span><i aria-hidden="true"></i><span>Grok</span></p>
+        <h1>Token<span>向云</span></h1>
+        <p class="tx-description">一个接口，连接主流 AI。</p>
+        <p class="tx-detail">统一接入 · 按量使用 · 用量可查</p>
+        <div class="tx-actions">
+          <a class="tx-button tx-primary" href="https://kkflow.org/register" target="_top" rel="noopener">开始使用</a>
+          <a class="tx-button" href="https://kkflow.org/dashboard" target="_top" rel="noopener">进入控制台</a>
+        </div>
+      </main>
+      <footer class="tx-footer">
+        <p>© 2026 Token向云</p>
+        <div class="tx-endpoint"><span>OpenAI 兼容</span><code>https://kkflow.org/v1</code></div>
+      </footer>
+    </div>
+  </body>
+</html>

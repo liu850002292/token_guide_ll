@@ -1,0 +1,115 @@
+name: Docker Build
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  pull_request:
+    paths:
+      - .github/workflows/docker-build.yml
+      - app/**
+      - content/**
+      - deploy/**
+      - homeApps/**
+      - public/**
+      - scripts/**
+      - server/**
+      - shared/**
+      - Dockerfile
+      - package.json
+      - package-lock.json
+      - nuxt.config.ts
+      - content.config.ts
+      - tsconfig.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-build-${{ github.event_name == 'pull_request' && github.ref || 'publish-main' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish Linux image
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+    env:
+      IMAGE_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY || '850002292/sub2api-guide' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Resolve image metadata
+        id: image
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          version="$(node -p "require('./package.json').version")"
+          publish=false
+          if [[ "${EVENT_NAME}" == "workflow_run" ]]; then
+            publish=true
+          fi
+          {
+            echo "publish=${publish}"
+            echo "version=${version}"
+            echo "tags<<EOF"
+            echo "${IMAGE_REPOSITORY}:sha-${sha}"
+            if [[ "${publish}" == "true" && "${version}" != *-* ]]; then
+              echo "${IMAGE_REPOSITORY}:latest"
+            fi
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Verify Docker Hub credentials
+        if: steps.image.outputs.publish == 'true'
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DOCKERHUB_USERNAME}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "Configure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN in the production environment." >&2
+            exit 1
+          fi
+          [[ "${IMAGE_REPOSITORY%%/*}" == "${DOCKERHUB_USERNAME}" ]]
+
+      - name: Log in to Docker Hub
+        if: steps.image.outputs.publish == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Build image and publish verified main commits
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: ${{ steps.image.outputs.publish == 'true' }}
+          build-args: |
+            APP_VERSION=${{ steps.image.outputs.version }}
+          tags: ${{ steps.image.outputs.tags }}
+          cache-from: type=gha,scope=sub2api-guide-linux-amd64
+          cache-to: type=gha,mode=max,scope=sub2api-guide-linux-amd64
+          provenance: false

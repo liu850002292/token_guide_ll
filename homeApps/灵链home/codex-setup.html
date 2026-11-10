@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex CLI 配置教程｜OpenAI 兼容 API 接入 - 灵链云</title>
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="Codex CLI 怎么配置？本教程教你修改 config.toml 与 OPENAI_API_KEY，通过灵链云 API 中转站接入 OpenAI 兼容网关，国内直连、按量计费、余额透明。"
+    />
+    <meta
+      name="keywords"
+      content="Codex配置,Codex CLI,Codex接入,OpenAI兼容API,OpenAI Codex,codex config,灵链云,API中转站,Base URL"
+    />
+    <link rel="canonical" href="https://llapi.org/codex-setup.html" />
+    <meta name="theme-color" content="#edf5fb" />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="灵链云" />
+    <meta property="og:title" content="Codex CLI 配置教程：3 分钟接入 OpenAI 兼容网关" />
+    <meta
+      property="og:description"
+      content="修改 Codex 的 config.toml，通过灵链云接入 OpenAI 兼容 API，国内直连、按量计费。"
+    />
+    <meta property="og:url" content="https://llapi.org/codex-setup.html" />
+    <meta property="og:image" content="https://llapi.org/assets/logo-256.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Codex CLI 配置教程：3 分钟接入 OpenAI 兼容网关" />
+    <meta
+      name="twitter:description"
+      content="修改 Codex 的 config.toml，通过灵链云接入 OpenAI 兼容 API，国内直连、按量计费。"
+    />
+    <link rel="icon" type="image/png" sizes="80x80" href="./assets/logo-80.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Codex CLI 配置教程：3 分钟接入 OpenAI 兼容网关",
+        "description": "修改 Codex 的 config.toml，通过灵链云接入 OpenAI 兼容 API，国内直连、按量计费。",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": "https://llapi.org/codex-setup.html",
+        "publisher": {
+          "@type": "Organization",
+          "name": "灵链云",
+          "url": "https://llapi.org/"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Codex CLI 怎么换成国内可用的 API 网关？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "在 ~/.codex/config.toml 中新增一个 model_providers 条目，把 base_url 指向灵链云地址并填入 API Key，再把 model 切换为该 provider 即可，全程不改业务代码。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Codex 支持 OpenAI 兼容的中转站吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支持。Codex 底层使用 OpenAI 协议，灵链云提供 OpenAI 兼容的 /v1/chat/completions 接口，直接把 base_url 与 env_key 指过去就能用。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "国内用 Codex CLI 需要梯子吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "接灵链云后不需要。灵链云提供国内可直连的网关地址，无需科学上网，使用支付宝或微信即可充值。"
+            }
+          }
+        ]
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf5fb;
+        --bg-cool: #e4eff8;
+        --paper: rgba(248, 252, 255, 0.84);
+        --paper-solid: #f7fbfe;
+        --ink: #1b2b43;
+        --text: #4b5e74;
+        --muted: #708297;
+        --line: rgba(56, 91, 128, 0.16);
+        --blue: #3f6db6;
+        --blue-deep: #2b446b;
+        --blue-soft: #dce9f8;
+        --coral: #608fc2;
+        --coral-soft: #e3eef9;
+        --lime: #82cbd1;
+        --lime-soft: #e0f2f4;
+        --aqua: #68b8c1;
+        --aqua-soft: #dff0f3;
+        --code-bg: #16233a;
+        --code-ink: #e7eefb;
+        --shadow: 0 20px 58px rgba(45, 75, 108, 0.12);
+        --shadow-small: 0 10px 28px rgba(45, 75, 108, 0.08);
+        --sans: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+      body {
+        margin: 0;
+        background: var(--bg-cool);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.75;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--blue); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      img { display: block; max-width: 100%; }
+      .shell { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(237, 245, 251, 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 62px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); flex-shrink: 0; }
+      .brand:hover { text-decoration: none; }
+      .brand strong { font-size: 17px; }
+      .brand small { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .nav-links a {
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .nav-links a:hover { background: var(--blue-soft); color: var(--blue-deep); text-decoration: none; }
+      .nav-links .nav-cta {
+        background: var(--blue);
+        color: #fff;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .nav-links .nav-cta:hover { background: var(--blue-deep); color: #fff; }
+      @media (max-width: 760px) {
+        .nav-links a:not(.nav-cta) { display: none; }
+      }
+
+      main { padding: 34px 0 60px; }
+      .breadcrumb { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      .breadcrumb a { color: var(--muted); }
+      .page-title {
+        font-size: clamp(26px, 4.4vw, 40px);
+        line-height: 1.3;
+        margin: 8px 0 10px;
+        letter-spacing: -0.01em;
+      }
+      .page-sub { font-size: 17px; color: var(--text); max-width: 72ch; margin: 0 0 26px; }
+
+      .lead-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow-small);
+        font-size: 15px;
+      }
+      .lead-card strong { color: var(--blue-deep); }
+      .lead-card .step-list { margin: 10px 0 2px; padding-left: 20px; }
+      .lead-card .step-list li { margin: 4px 0; }
+
+      .toc {
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin: 26px 0;
+        font-size: 14px;
+      }
+      .toc summary { cursor: pointer; font-weight: 600; color: var(--blue-deep); }
+      .toc ol { margin: 10px 0 0; padding-left: 20px; }
+      .toc a { color: var(--text); }
+
+      .prose { margin-top: 30px; }
+      .prose section { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 26px 30px; margin-bottom: 22px; box-shadow: var(--shadow-small); }
+      .prose h2 { font-size: 23px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .prose h3 { font-size: 17px; margin: 24px 0 8px; color: var(--blue-deep); }
+      .prose p { margin: 10px 0; color: var(--text); }
+      .prose strong { color: var(--ink); }
+      .prose ul, .prose ol { margin: 10px 0; padding-left: 22px; color: var(--text); }
+      .prose li { margin: 6px 0; }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        padding: 2px 6px;
+        border-radius: 6px;
+        word-break: break-all;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+      pre .cmt { color: #8aa2c0; }
+      pre .k { color: #ffd479; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+      th { background: var(--blue-soft); color: var(--blue-deep); }
+      td { color: var(--text); }
+      @media (max-width: 640px) { .prose section { padding: 20px 16px; } table { font-size: 12.5px; } }
+
+      .cta-box {
+        background: linear-gradient(120deg, var(--blue-deep), var(--blue) 60%, var(--aqua));
+        color: #fff;
+        border-radius: 18px;
+        padding: 30px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      .cta-box h2 { margin: 0 0 8px; font-size: 24px; border: none; padding: 0; color: #fff; }
+      .cta-box p { color: rgba(255, 255, 255, 0.85); margin: 0 auto 18px; max-width: 56ch; }
+      .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn { display: inline-block; padding: 11px 22px; border-radius: 10px; font-weight: 600; font-size: 15px; }
+      .btn-primary { background: #fff; color: var(--blue-deep); }
+      .btn-primary:hover { text-decoration: none; opacity: 0.92; }
+      .btn-ghost { border: 1px solid rgba(255, 255, 255, 0.6); color: #fff; }
+      .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+
+      .related { margin-top: 26px; }
+      .related h2 { font-size: 19px; }
+      .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .related-card {
+        display: block;
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        color: var(--text);
+        box-shadow: var(--shadow-small);
+      }
+      .related-card:hover { border-color: var(--blue); text-decoration: none; transform: translateY(-2px); }
+      .related-card b { display: block; color: var(--ink); margin-bottom: 4px; font-size: 15px; }
+
+      .site-footer { border-top: 1px solid var(--line); background: var(--bg); padding: 26px 0; }
+      .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+      .footer-links a { color: var(--muted); margin-left: 16px; }
+      .footer-links a:hover { color: var(--blue); }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell nav">
+        <a class="brand" href="/" aria-label="灵链云首页">
+          <img src="./assets/logo-80.png" width="32" height="32" alt="灵链云 logo" decoding="async" />
+          <span><strong>灵链云</strong><small>AI gateway for builders</small></span>
+        </a>
+        <nav class="nav-links" aria-label="站内导航">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">文档</a><a href="blog/index.html">博客</a>
+          <a class="nav-cta" href="https://llapi.org/register">免费注册</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="shell">
+        <p class="breadcrumb"><a href="/">灵链云首页</a> › <a href="openai-compatible.html">OpenAI 兼容 API</a> › Codex CLI 配置教程</p>
+        <h1 class="page-title">Codex CLI 配置教程：3 分钟接入灵链云</h1>
+        <p class="page-sub">
+          Codex CLI 是 OpenAI 的命令行 AI 编程工具，底层走 OpenAI 兼容协议。
+          因为协议标准，接第三方网关非常容易：改一行 <code>base_url</code>、填一个 <code>env_key</code> 即可。
+          本教程带你用灵链云跑通 Codex，国内直连、按量计费、余额透明。
+        </p>
+
+        <div class="lead-card">
+          <strong>核心要点：</strong>
+          <ul class="step-list">
+            <li>Codex 通过 <code>~/.codex/config.toml</code> 配置自定义模型提供方（provider）；</li>
+            <li>新增一个指向 <code>https://llapi.org/v1</code> 的 provider，再切换到该模型即可；</li>
+            <li>全程不需要修改 Codex 本体，也不影响其它项目。</li>
+          </ul>
+        </div>
+
+        <nav class="toc" aria-label="目录">
+          <details open>
+            <summary>本页目录</summary>
+            <ol>
+              <li><a href="#prep">接入前提</a></li>
+              <li><a href="#step-register">第一步：注册并创建 API Key</a></li>
+              <li><a href="#step-config">第二步：修改 Codex config.toml</a></li>
+              <li><a href="#step-verify">第三步：验证 Codex 连通</a></li>
+              <li><a href="#troubleshoot">常见报错与排查</a></li>
+              <li><a href="#faq">常见问题 FAQ</a></li>
+            </ol>
+          </details>
+        </nav>
+
+        <article class="prose">
+          <section id="prep">
+            <h2>一、接入前提</h2>
+            <ul>
+              <li>已安装 <strong>Codex CLI</strong>，并能在终端启动 <code>codex</code> 命令；</li>
+              <li>有 <strong>灵链云账号</strong> 并已创建 API Key、账户有余额；</li>
+              <li>终端可直连 <code>https://llapi.org/v1</code>。</li>
+            </ul>
+            <p>还没有账号？先到 <a href="https://llapi.org/register">灵链云注册页</a> 注册，新用户送体验额度。</p>
+          </section>
+
+          <section id="step-register">
+            <h2>二、第一步：注册并创建 API Key</h2>
+            <p>
+              登录 <a href="https://llapi.org/login">llapi.org</a> 后，在「会员中心」完成小额充值（支持支付宝 / 微信），
+              然后在控制台「API Key」新建密钥，密钥形如 <code>sk-xxxxxxxx</code>，创建后立即复制保存。
+            </p>
+            <div class="cta-box">
+              <h2>注册即送体验额度</h2>
+              <p>3 分钟跑通 Codex，国内直连无需梯子。</p>
+              <div class="cta-btns">
+                <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+                <a class="btn btn-ghost" href="https://llapi.org/login">去登录</a>
+              </div>
+            </div>
+          </section>
+
+          <section id="step-config">
+            <h2>三、第二步：修改 Codex config.toml</h2>
+            <p>编辑 <code>~/.codex/config.toml</code>（Windows 为 <code>%USERPROFILE%\.codex\config.toml</code>），加入以下内容：</p>
+            <pre><code><span class="cmt"># 灵链云 OpenAI 兼容 provider</span>
+[model_providers.llapi]
+name = "灵链云"
+base_url = "https://llapi.org/v1"
+env_key = "LLAPI_API_KEY"
+wire_api = "chat"
+
+<span class="cmt"># 切换到灵链云提供的模型（模型名以控制台为准）</span>
+model = "gpt-5"
+model_provider = "llapi"</code></pre>
+            <p>然后在终端设置环境变量（内容为你刚创建的灵链云 Key）：</p>
+            <p>macOS / Linux：</p>
+            <pre><code><span class="k">export</span> LLAPI_API_KEY="sk-你的灵链云密钥"</code></pre>
+            <p>Windows PowerShell：</p>
+            <pre><code><span class="k">$env:</span>LLAPI_API_KEY = "sk-你的灵链云密钥"</code></pre>
+            <p class="cmt-note"><small>说明：<code>env_key</code> 名称可自定义，只要与上面的环境变量一致即可；<code>wire_api = "chat"</code> 表示走 <code>/v1/chat/completions</code> 协议。模型名以 <a href="https://guide.llapi.org">灵链云文档</a> 的可用模型列表为准。</small></p>
+          </section>
+
+          <section id="step-verify">
+            <h2>四、第三步：验证 Codex 连通</h2>
+            <p>保存配置后，在新终端里启动 Codex：</p>
+            <pre><code><span class="k">codex</span></code></pre>
+            <p>输入一个简单问题，例如「用 Python 写一个 hello world」。能正常回答即接入成功。</p>
+            <p>也可以用 curl 直接验证灵链云的 OpenAI 兼容接口（返回内容即连通）：</p>
+            <pre><code><span class="k">curl</span> https://llapi.org/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的灵链云密钥" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-5","messages":[{"role":"user","content":"ping"}]}'</code></pre>
+          </section>
+
+          <section id="troubleshoot">
+            <h2>五、常见报错与排查</h2>
+            <table>
+              <thead>
+                <tr><th>现象</th><th>原因</th><th>解决办法</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>401 unauthorized</code></td>
+                  <td>环境变量未设置或 Key 错误</td>
+                  <td>确认 <code>LLAPI_API_KEY</code> 已导出且 Key 完整</td>
+                </tr>
+                <tr>
+                  <td><code>invalid model</code> / 模型不存在</td>
+                  <td>模型名与网关不一致</td>
+                  <td>查看灵链云控制台可用模型，替换 config.toml 中的 model</td>
+                </tr>
+                <tr>
+                  <td><code>402 insufficient balance</code></td>
+                  <td>余额不足</td>
+                  <td>会员中心充值后重试</td>
+                </tr>
+                <tr>
+                  <td>连接超时</td>
+                  <td>本地网络到网关不通</td>
+                  <td>检查是否有冲突代理，确认可直连 llapi.org</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="faq">
+            <h2>六、常见问题 FAQ</h2>
+            <h3>Codex 一定要求 OpenAI 官方账号吗？</h3>
+            <p>
+              不一定。Codex 支持自定义 provider，只要对方提供 OpenAI 兼容的 <code>/v1/chat/completions</code> 接口，
+              就能用灵链云这样的中转站接入，不要求 OpenAI 官方订阅。
+            </p>
+            <h3>走中转站和官方 API 有区别吗？</h3>
+            <p>
+              协议完全一致，主要是接入入口与付费方式不同：灵链云提供国内直连地址、支持支付宝 / 微信充值、
+              统一的用量统计与余额管理。对国内团队和个人开发者是更省事的接入方式。
+            </p>
+            <h3>这个配置会不会影响 Codex 其它功能？</h3>
+            <p>
+              不会。自定义 provider 是 Codex 官方支持的配置项，只影响模型调用来源，不影响命令行工具本身的功能。
+            </p>
+          </section>
+        </article>
+
+        <div class="cta-box">
+          <h2>现在就把 Codex 接进来</h2>
+          <p>注册领取体验额度，国内直连、余额透明、按量计费，3 分钟开始 AI 编程。</p>
+          <div class="cta-btns">
+            <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+            <a class="btn btn-ghost" href="https://guide.llapi.org">查看完整接入文档</a>
+          </div>
+        </div>
+
+        <section class="related" aria-label="相关阅读">
+          <h2>相关阅读</h2>
+          <div class="related-grid">
+            <a class="related-card" href="claude-code.html">
+              <b>Claude Code 接入配置</b>
+              <span>国内直连 Claude Code 的三步教程。</span>
+            </a>
+            <a class="related-card" href="openai-compatible.html">
+              <b>OpenAI 兼容 API 说明</b>
+              <span>一个 Base URL 接入多款模型，SDK 用法示例。</span>
+            </a>
+            <a class="related-card" href="api-proxy.html">
+              <b>AI API 中转站怎么选</b>
+              <span>透明计费、稳定性与售后评估清单。</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div>© 2026 灵链云（llapi.org）. All Rights Reserved.</div>
+        <div class="footer-links">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code 接入</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">接入文档</a><a href="blog/index.html">博客</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

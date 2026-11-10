@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI API 中转站怎么选？2026 评测清单与避坑指南 - 灵链云</title>
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="AI API 中转站怎么选才靠谱？从计费透明、模型满血、稳定性、售后到企业资质，整理 7 项评估标准与避坑清单，帮你避开掺水、虚报 Token、跑路风险。"
+    />
+    <meta
+      name="keywords"
+      content="API中转站,AI API中转站,大模型API中转,API中转站推荐,中转站避坑,灵链云,Claude API,GPT API,模型聚合"
+    />
+    <link rel="canonical" href="https://llapi.org/api-proxy.html" />
+    <meta name="theme-color" content="#edf5fb" />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="灵链云" />
+    <meta property="og:title" content="AI API 中转站怎么选？7 项评估标准与避坑指南" />
+    <meta
+      property="og:description"
+      content="从计费透明、模型满血、稳定性、售后到企业资质，7 项评估标准帮你避开掺水与跑路风险。"
+    />
+    <meta property="og:url" content="https://llapi.org/api-proxy.html" />
+    <meta property="og:image" content="https://llapi.org/assets/logo-256.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="AI API 中转站怎么选？7 项评估标准与避坑指南" />
+    <meta
+      name="twitter:description"
+      content="从计费透明、模型满血、稳定性、售后到企业资质，7 项评估标准帮你避开掺水与跑路风险。"
+    />
+    <link rel="icon" type="image/png" sizes="80x80" href="./assets/logo-80.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "AI API 中转站怎么选？7 项评估标准与避坑指南",
+        "description": "从计费透明、模型满血、稳定性、售后到企业资质，7 项评估标准帮你避开掺水与跑路风险。",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": "https://llapi.org/api-proxy.html",
+        "publisher": {
+          "@type": "Organization",
+          "name": "灵链云",
+          "url": "https://llapi.org/"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "AI API 中转站是什么？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "中转站（API Relay / Proxy）是介于用户与大模型厂商之间的服务方：批量采购官方或其他渠道额度，再以统一接口转售给用户，主要解决国内开发者海外网络、外币支付与多模型管理的问题。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "怎么判断中转站有没有掺水或虚报 Token？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "看三点：是否公开渠道来源与计费倍率、是否有逐笔调用日志（模型 / Token / 费用）、模型输出是否稳定一致。先用小额测试，复杂任务与官方对比，警惕异常低价的模型。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "用中转站会不会跑路或封号？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "选有企业主体、运营时间较长、有公开客服与社群的站风险更小。建议不要囤大额余额，用多少充多少；中转调用与你个人模型账号通常不绑定，不存在因此封个人号的问题。"
+            }
+          }
+        ]
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf5fb;
+        --bg-cool: #e4eff8;
+        --paper: rgba(248, 252, 255, 0.84);
+        --paper-solid: #f7fbfe;
+        --ink: #1b2b43;
+        --text: #4b5e74;
+        --muted: #708297;
+        --line: rgba(56, 91, 128, 0.16);
+        --blue: #3f6db6;
+        --blue-deep: #2b446b;
+        --blue-soft: #dce9f8;
+        --coral: #608fc2;
+        --coral-soft: #e3eef9;
+        --lime: #82cbd1;
+        --lime-soft: #e0f2f4;
+        --aqua: #68b8c1;
+        --aqua-soft: #dff0f3;
+        --code-bg: #16233a;
+        --code-ink: #e7eefb;
+        --shadow: 0 20px 58px rgba(45, 75, 108, 0.12);
+        --shadow-small: 0 10px 28px rgba(45, 75, 108, 0.08);
+        --sans: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+      body {
+        margin: 0;
+        background: var(--bg-cool);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.75;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--blue); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      img { display: block; max-width: 100%; }
+      .shell { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(237, 245, 251, 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 62px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); flex-shrink: 0; }
+      .brand:hover { text-decoration: none; }
+      .brand strong { font-size: 17px; }
+      .brand small { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .nav-links a {
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .nav-links a:hover { background: var(--blue-soft); color: var(--blue-deep); text-decoration: none; }
+      .nav-links .nav-cta {
+        background: var(--blue);
+        color: #fff;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .nav-links .nav-cta:hover { background: var(--blue-deep); color: #fff; }
+      @media (max-width: 760px) {
+        .nav-links a:not(.nav-cta) { display: none; }
+      }
+
+      main { padding: 34px 0 60px; }
+      .breadcrumb { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      .breadcrumb a { color: var(--muted); }
+      .page-title {
+        font-size: clamp(26px, 4.4vw, 40px);
+        line-height: 1.3;
+        margin: 8px 0 10px;
+        letter-spacing: -0.01em;
+      }
+      .page-sub { font-size: 17px; color: var(--text); max-width: 72ch; margin: 0 0 26px; }
+
+      .lead-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow-small);
+        font-size: 15px;
+      }
+      .lead-card strong { color: var(--blue-deep); }
+      .lead-card .step-list { margin: 10px 0 2px; padding-left: 20px; }
+      .lead-card .step-list li { margin: 4px 0; }
+
+      .toc {
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin: 26px 0;
+        font-size: 14px;
+      }
+      .toc summary { cursor: pointer; font-weight: 600; color: var(--blue-deep); }
+      .toc ol { margin: 10px 0 0; padding-left: 20px; }
+      .toc a { color: var(--text); }
+
+      .prose { margin-top: 30px; }
+      .prose section { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 26px 30px; margin-bottom: 22px; box-shadow: var(--shadow-small); }
+      .prose h2 { font-size: 23px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .prose h3 { font-size: 17px; margin: 24px 0 8px; color: var(--blue-deep); }
+      .prose p { margin: 10px 0; color: var(--text); }
+      .prose strong { color: var(--ink); }
+      .prose ul, .prose ol { margin: 10px 0; padding-left: 22px; color: var(--text); }
+      .prose li { margin: 6px 0; }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        padding: 2px 6px;
+        border-radius: 6px;
+        word-break: break-all;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+      th { background: var(--blue-soft); color: var(--blue-deep); }
+      td { color: var(--text); }
+      @media (max-width: 640px) { .prose section { padding: 20px 16px; } table { font-size: 12.5px; } }
+
+      .cta-box {
+        background: linear-gradient(120deg, var(--blue-deep), var(--blue) 60%, var(--aqua));
+        color: #fff;
+        border-radius: 18px;
+        padding: 30px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      .cta-box h2 { margin: 0 0 8px; font-size: 24px; border: none; padding: 0; color: #fff; }
+      .cta-box p { color: rgba(255, 255, 255, 0.85); margin: 0 auto 18px; max-width: 56ch; }
+      .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn { display: inline-block; padding: 11px 22px; border-radius: 10px; font-weight: 600; font-size: 15px; }
+      .btn-primary { background: #fff; color: var(--blue-deep); }
+      .btn-primary:hover { text-decoration: none; opacity: 0.92; }
+      .btn-ghost { border: 1px solid rgba(255, 255, 255, 0.6); color: #fff; }
+      .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+
+      .related { margin-top: 26px; }
+      .related h2 { font-size: 19px; }
+      .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .related-card {
+        display: block;
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        color: var(--text);
+        box-shadow: var(--shadow-small);
+      }
+      .related-card:hover { border-color: var(--blue); text-decoration: none; transform: translateY(-2px); }
+      .related-card b { display: block; color: var(--ink); margin-bottom: 4px; font-size: 15px; }
+
+      .site-footer { border-top: 1px solid var(--line); background: var(--bg); padding: 26px 0; }
+      .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+      .footer-links a { color: var(--muted); margin-left: 16px; }
+      .footer-links a:hover { color: var(--blue); }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell nav">
+        <a class="brand" href="/" aria-label="灵链云首页">
+          <img src="./assets/logo-80.png" width="32" height="32" alt="灵链云 logo" decoding="async" />
+          <span><strong>灵链云</strong><small>AI gateway for builders</small></span>
+        </a>
+        <nav class="nav-links" aria-label="站内导航">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">文档</a><a href="blog/index.html">博客</a>
+          <a class="nav-cta" href="https://llapi.org/register">免费注册</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="shell">
+        <p class="breadcrumb"><a href="/">灵链云首页</a> › AI API 中转站选购指南</p>
+        <h1 class="page-title">AI API 中转站怎么选？7 项评估标准与避坑指南</h1>
+        <p class="page-sub">
+          中转站帮你解决海外网络、外币支付与多模型管理的麻烦，但行业鱼龙混杂：掺水、虚报 Token、随时跑路的
+          案例并不少见。这篇指南整理出 7 项评估标准与避坑清单，帮你在选站时少走弯路。
+        </p>
+
+        <div class="lead-card">
+          <strong>先记住一句话：</strong>
+          <ul class="step-list">
+            <li>这个行业波动大，<strong>用多少充多少，不要囤大额余额</strong>；</li>
+            <li>先用小额 / 赠送额度跑真实场景，确认「模型质量 + 计费透明度」再决定长期用；</li>
+            <li>企业或合规要求极高的场景，优先考虑官方 API 或自建网关。</li>
+          </ul>
+        </div>
+
+        <nav class="toc" aria-label="目录">
+          <details open>
+            <summary>本页目录</summary>
+            <ol>
+              <li><a href="#what">中转站解决了什么问题</a></li>
+              <li><a href="#criteria">7 项评估标准</a></li>
+              <li><a href="#avoid">必须避开的 5 个坑</a></li>
+              <li><a href="#compare">灵链云做了什么（供对比）</a></li>
+              <li><a href="#faq">常见问题 FAQ</a></li>
+            </ol>
+          </details>
+        </nav>
+
+        <article class="prose">
+          <section id="what">
+            <h2>一、中转站解决了什么问题</h2>
+            <p>
+              对国内开发者来说，直接用官方大模型 API 有三道坎：<strong>海外网络</strong>（直连不稳定或不可达）、
+              <strong>外币支付</strong>（需要 Visa / Mastercard 等）、<strong>多模型管理</strong>（每个厂商一套 Key、
+              一套账单）。API 中转站本质是「批发转零售」的网关：帮你统一接入入口、统一付费与用量管理。
+            </p>
+            <p>
+              但它也带来新风险——上游渠道不透明、模型可能被替换、账单可能虚报。所以「会不会选」比「选哪家」更重要。
+            </p>
+          </section>
+
+          <section id="criteria">
+            <h2>二、7 项评估标准</h2>
+            <table>
+              <thead>
+                <tr><th>评估项</th><th>怎么看</th><th>红线</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>1. 计费透明度</strong></td>
+                  <td>是否公开模型倍率、Token 计算口径、缓存计费规则</td>
+                  <td>拒绝说明计费口径的</td>
+                </tr>
+                <tr>
+                  <td><strong>2. 调用日志</strong></td>
+                  <td>控制台能否看到逐笔的模型、Token、费用与时间</td>
+                  <td>无任何日志可查的</td>
+                </tr>
+                <tr>
+                  <td><strong>3. 模型是否「满血」</strong></td>
+                  <td>用复杂难题测试，与官方 API 输出对比是否一致稳定</td>
+                  <td>价格异常低、输出时好时坏</td>
+                </tr>
+                <tr>
+                  <td><strong>4. 稳定性</strong></td>
+                  <td>运营时长、可用性公告、是否有备用链路与故障补偿</td>
+                  <td>频繁宕机且无说明</td>
+                </tr>
+                <tr>
+                  <td><strong>5. 主体与资质</strong></td>
+                  <td>是否有企业主体、能否开票、有无备案</td>
+                  <td>纯个人且信息完全不透明</td>
+                </tr>
+                <tr>
+                  <td><strong>6. 客服与社群</strong></td>
+                  <td>有无公开客服、QQ / TG 群，出事能找到人</td>
+                  <td>充值后失联</td>
+                </tr>
+                <tr>
+                  <td><strong>7. 小额试错成本</strong></td>
+                  <td>新用户是否送体验额度、最低充值门槛多低</td>
+                  <td>强制大额首充</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="avoid">
+            <h2>三、必须避开的 5 个坑</h2>
+            <ol>
+              <li><strong>异常低价引流：</strong>「比官方便宜 100 倍」大概率是模型被替换或逆向不稳定渠道；</li>
+              <li><strong>虚报 Token：</strong>实际用 100 Token，账单写成 150，留意 <code>usage</code> 字段与倍率；</li>
+              <li><strong>缓存吸血：</strong>相同 prompt 命中缓存后本应更便宜，却被按全价收；</li>
+              <li><strong>无企业主体：</strong>纯个人运营、无备案，积累到一定金额可能删库跑路；</li>
+              <li><strong>隐私无保障：</strong>不清楚请求数据如何存储处理时，不要传密钥、商业机密与敏感数据。</li>
+            </ol>
+          </section>
+
+          <section id="compare">
+            <h2>四、灵链云做了什么（供对比参考）</h2>
+            <p>作为评估样本之一，灵链云在以下方面刻意做了透明化设计，你可以按上面的标准逐项核对任何一家站：</p>
+            <ul>
+              <li><strong>统一计费口径：</strong>模型倍率与 Token 规则公开，缓存计费规则明确；</li>
+              <li><strong>逐笔调用日志：</strong>控制台记录每次请求的模型、Token、费用与时间，可按 Key 回看；</li>
+              <li><strong>多模型一个 Key：</strong>Claude、GPT、Gemini 等通过同一 Base URL 调用，切换模型不改代码；</li>
+              <li><strong>小额试错：</strong>新用户注册送体验额度，充值支持支付宝 / 微信，无需大额首充；</li>
+              <li><strong>官方 / 稳定渠道优先：</strong>接入以正规渠道为主，强调「可用性优先」的链路策略。</li>
+            </ul>
+            <p>更详细的接入方式见：<a href="openai-compatible.html">OpenAI 兼容 API 接入</a> 与 <a href="claude-code.html">Claude Code 接入教程</a>。</p>
+            <div class="cta-box">
+              <h2>用赠送额度亲自验证</h2>
+              <p>注册即可领取体验额度，按上表标准自己跑一遍真实场景，再决定是否长期使用。</p>
+              <div class="cta-btns">
+                <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+                <a class="btn btn-ghost" href="https://llapi.org/login">去登录</a>
+              </div>
+            </div>
+          </section>
+
+          <section id="faq">
+            <h2>五、常见问题 FAQ</h2>
+            <h3>中转站的价格为什么能比官方低？</h3>
+            <p>
+              来源不同：部分站用批量采购、缓存复用等方式降低成本；但也有站用逆向或替换模型的方式压价，
+              后者质量与稳定性都不可控。遇到明显低于成本的报价，先验证再充值。
+            </p>
+            <h3>如何快速验证一家站有没有「偷换模型」？</h3>
+            <p>
+              用模型最容易翻车的任务测试（如代码、逻辑推理、长上下文），与官方结果对比；再看控制台调用日志里
+              记录的 model 与响应是否一致，多次采样观察稳定性。
+            </p>
+            <h3>我应该囤很多余额拿优惠吗？</h3>
+            <p>
+              不建议。这个行业波动大、跑路风险客观存在，充值是「用多少充多少」最稳妥；优惠活动按需参与即可。
+            </p>
+          </section>
+        </article>
+
+        <div class="cta-box">
+          <h2>想亲测一家计费透明的中转站？</h2>
+          <p>灵链云新用户注册即送体验额度，支持支付宝 / 微信，按量计费、余额透明。</p>
+          <div class="cta-btns">
+            <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+            <a class="btn btn-ghost" href="https://guide.llapi.org">查看完整接入文档</a>
+          </div>
+        </div>
+
+        <section class="related" aria-label="相关阅读">
+          <h2>相关阅读</h2>
+          <div class="related-grid">
+            <a class="related-card" href="claude-code.html">
+              <b>Claude Code 接入配置</b>
+              <span>国内直连 Claude Code 的三步教程。</span>
+            </a>
+            <a class="related-card" href="codex-setup.html">
+              <b>Codex CLI 配置教程</b>
+              <span>用灵链云跑 OpenAI Codex，改 config.toml 即可。</span>
+            </a>
+            <a class="related-card" href="openai-compatible.html">
+              <b>OpenAI 兼容 API 说明</b>
+              <span>一个 Base URL 接入多款模型，SDK 用法示例。</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div>© 2026 灵链云（llapi.org）. All Rights Reserved.</div>
+        <div class="footer-links">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code 接入</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">接入文档</a><a href="blog/index.html">博客</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

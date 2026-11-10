@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Code 接入配置教程｜国内直连 API 中转站 - 灵链云</title>
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="Claude Code 怎么接入？本教程 3 分钟教会你配置 ANTHROPIC_BASE_URL 与 API Key，通过灵链云 API 中转站实现国内直连、支付宝微信充值，无需海外网络与外币卡。"
+    />
+    <meta
+      name="keywords"
+      content="Claude Code接入,Claude Code配置,Claude Code国内,Claude API中转,ANTHROPIC_BASE_URL,Claude Code API,灵链云,API中转站"
+    />
+    <link rel="canonical" href="https://llapi.org/claude-code.html" />
+    <meta name="theme-color" content="#edf5fb" />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="灵链云" />
+    <meta property="og:title" content="Claude Code 接入配置教程：3 分钟国内直连" />
+    <meta
+      property="og:description"
+      content="配置 ANTHROPIC_BASE_URL 与 API Key，通过灵链云把 Claude Code 接进来，国内直连、支持微信支付宝。"
+    />
+    <meta property="og:url" content="https://llapi.org/claude-code.html" />
+    <meta property="og:image" content="https://llapi.org/assets/logo-256.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Claude Code 接入配置教程：3 分钟国内直连" />
+    <meta
+      name="twitter:description"
+      content="配置 ANTHROPIC_BASE_URL 与 API Key，通过灵链云把 Claude Code 接进来，国内直连、支持微信支付宝。"
+    />
+    <link rel="icon" type="image/png" sizes="80x80" href="./assets/logo-80.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Claude Code 接入配置教程：3 分钟国内直连",
+        "description": "配置 ANTHROPIC_BASE_URL 与 API Key，通过灵链云 API 中转站实现国内直连 Claude Code。",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": "https://llapi.org/claude-code.html",
+        "publisher": {
+          "@type": "Organization",
+          "name": "灵链云",
+          "url": "https://llapi.org/"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Claude Code 接入中转站会不会封号？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "中转站用自己的上游账号池提供调用，你的 API Key 与 Claude 官方账号无绑定关系，正常用量下不存在因中转而被封个人账号的风险。建议按需充值、不要囤大额余额。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Claude Code 需要改哪些配置才能走中转？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "只需在 Claude Code 的 settings.json 中配置 ANTHROPIC_BASE_URL 指向中转站地址，并写入中转站发放的 API Key，即可切换，不修改任何业务代码。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "国内可以用 Claude Code 吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可以。灵链云提供国内可直连的接入地址，无需科学上网与海外信用卡，使用支付宝或微信即可充值。"
+            }
+          }
+        ]
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf5fb;
+        --bg-cool: #e4eff8;
+        --paper: rgba(248, 252, 255, 0.84);
+        --paper-solid: #f7fbfe;
+        --ink: #1b2b43;
+        --text: #4b5e74;
+        --muted: #708297;
+        --line: rgba(56, 91, 128, 0.16);
+        --blue: #3f6db6;
+        --blue-deep: #2b446b;
+        --blue-soft: #dce9f8;
+        --coral: #608fc2;
+        --coral-soft: #e3eef9;
+        --lime: #82cbd1;
+        --lime-soft: #e0f2f4;
+        --aqua: #68b8c1;
+        --aqua-soft: #dff0f3;
+        --code-bg: #16233a;
+        --code-ink: #e7eefb;
+        --shadow: 0 20px 58px rgba(45, 75, 108, 0.12);
+        --shadow-small: 0 10px 28px rgba(45, 75, 108, 0.08);
+        --sans: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+      body {
+        margin: 0;
+        background: var(--bg-cool);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.75;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--blue); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      img { display: block; max-width: 100%; }
+      .shell { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(237, 245, 251, 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 62px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); flex-shrink: 0; }
+      .brand:hover { text-decoration: none; }
+      .brand strong { font-size: 17px; }
+      .brand small { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .nav-links a {
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .nav-links a:hover { background: var(--blue-soft); color: var(--blue-deep); text-decoration: none; }
+      .nav-links .nav-cta {
+        background: var(--blue);
+        color: #fff;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .nav-links .nav-cta:hover { background: var(--blue-deep); color: #fff; }
+      @media (max-width: 760px) {
+        .nav-links a:not(.nav-cta) { display: none; }
+      }
+
+      main { padding: 34px 0 60px; }
+      .breadcrumb {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .breadcrumb a { color: var(--muted); }
+      .page-title {
+        font-size: clamp(26px, 4.4vw, 40px);
+        line-height: 1.3;
+        margin: 8px 0 10px;
+        letter-spacing: -0.01em;
+      }
+      .page-sub { font-size: 17px; color: var(--text); max-width: 72ch; margin: 0 0 26px; }
+
+      .lead-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow-small);
+        font-size: 15px;
+      }
+      .lead-card strong { color: var(--blue-deep); }
+      .lead-card .step-list { margin: 10px 0 2px; padding-left: 20px; }
+      .lead-card .step-list li { margin: 4px 0; }
+
+      .toc {
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin: 26px 0;
+        font-size: 14px;
+      }
+      .toc summary { cursor: pointer; font-weight: 600; color: var(--blue-deep); }
+      .toc ol { margin: 10px 0 0; padding-left: 20px; }
+      .toc a { color: var(--text); }
+
+      .prose { margin-top: 30px; }
+      .prose section { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 26px 30px; margin-bottom: 22px; box-shadow: var(--shadow-small); }
+      .prose h2 { font-size: 23px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .prose h3 { font-size: 17px; margin: 24px 0 8px; color: var(--blue-deep); }
+      .prose p { margin: 10px 0; color: var(--text); }
+      .prose strong { color: var(--ink); }
+      .prose ul, .prose ol { margin: 10px 0; padding-left: 22px; color: var(--text); }
+      .prose li { margin: 6px 0; }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        padding: 2px 6px;
+        border-radius: 6px;
+        word-break: break-all;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+      pre .cmt { color: #8aa2c0; }
+      pre .k { color: #ffd479; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+      th { background: var(--blue-soft); color: var(--blue-deep); }
+      td { color: var(--text); }
+      @media (max-width: 640px) { .prose section { padding: 20px 16px; } table { font-size: 12.5px; } }
+
+      .cta-box {
+        background: linear-gradient(120deg, var(--blue-deep), var(--blue) 60%, var(--aqua));
+        color: #fff;
+        border-radius: 18px;
+        padding: 30px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      .cta-box h2 { margin: 0 0 8px; font-size: 24px; border: none; padding: 0; color: #fff; }
+      .cta-box p { color: rgba(255, 255, 255, 0.85); margin: 0 auto 18px; max-width: 56ch; }
+      .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn {
+        display: inline-block;
+        padding: 11px 22px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .btn-primary { background: #fff; color: var(--blue-deep); }
+      .btn-primary:hover { text-decoration: none; opacity: 0.92; }
+      .btn-ghost { border: 1px solid rgba(255, 255, 255, 0.6); color: #fff; }
+      .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+
+      .related { margin-top: 26px; }
+      .related h2 { font-size: 19px; }
+      .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .related-card {
+        display: block;
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        color: var(--text);
+        box-shadow: var(--shadow-small);
+      }
+      .related-card:hover { border-color: var(--blue); text-decoration: none; transform: translateY(-2px); }
+      .related-card b { display: block; color: var(--ink); margin-bottom: 4px; font-size: 15px; }
+
+      .site-footer { border-top: 1px solid var(--line); background: var(--bg); padding: 26px 0; }
+      .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+      .footer-links a { color: var(--muted); margin-left: 16px; }
+      .footer-links a:hover { color: var(--blue); }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell nav">
+        <a class="brand" href="/" aria-label="灵链云首页">
+          <img src="./assets/logo-80.png" width="32" height="32" alt="灵链云 logo" decoding="async" />
+          <span><strong>灵链云</strong><small>AI gateway for builders</small></span>
+        </a>
+        <nav class="nav-links" aria-label="站内导航">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">文档</a><a href="blog/index.html">博客</a>
+          <a class="nav-cta" href="https://llapi.org/register">免费注册</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="shell">
+        <p class="breadcrumb"><a href="/">灵链云首页</a> › <a href="api-proxy.html">AI API 中转站</a> › Claude Code 接入配置教程</p>
+        <h1 class="page-title">Claude Code 接入灵链云：国内直连配置教程</h1>
+        <p class="page-sub">
+          Claude Code 是 Anthropic 推出的 AI 编程终端工具，能在命令行里直接读代码、改文件、跑测试。
+          对国内开发者来说，最大的门槛是网络与支付。本教程教你 3 分钟把 Claude Code 接到灵链云 API 中转站，
+          无需科学上网、无需外币卡，支付宝微信即可充值。
+        </p>
+
+        <div class="lead-card">
+          <strong>接入前后对比：</strong>
+          <ul class="step-list">
+            <li><strong>接入前：</strong>需要海外网络与官方 Anthropic 账号、绑定外币卡，国内直连经常超时。</li>
+            <li><strong>接入后：</strong>只需把 <code>ANTHROPIC_BASE_URL</code> 指向灵链云，填入灵链云发的 API Key 即可运行。</li>
+            <li><strong>全程只改配置，不改代码。</strong>支持按量计费、用量透明、随时在控制台查看 Token 消耗。</li>
+          </ul>
+        </div>
+
+        <nav class="toc" aria-label="目录">
+          <details open>
+            <summary>本页目录</summary>
+            <ol>
+              <li><a href="#prep">接入前提</a></li>
+              <li><a href="#step-register">第一步：注册灵链云并创建 API Key</a></li>
+              <li><a href="#step-config">第二步：配置 Claude Code 环境变量</a></li>
+              <li><a href="#step-verify">第三步：验证连通性</a></li>
+              <li><a href="#troubleshoot">常见报错与排查</a></li>
+              <li><a href="#faq">常见问题 FAQ</a></li>
+            </ol>
+          </details>
+        </nav>
+
+        <article class="prose">
+          <section id="prep">
+            <h2>一、接入前提</h2>
+            <p>开始前请确认你已具备以下条件：</p>
+            <ul>
+              <li>已安装 <strong>Claude Code</strong>（支持 npm 安装与原生安装两种方式）；</li>
+              <li>有一个可用的 <strong>灵链云账号</strong>，并已创建 API Key、账户内有余额；</li>
+              <li>终端可正常访问 <code>https://llapi.org/v1</code>（国内网络直连即可）。</li>
+            </ul>
+            <p>如果还没有账号，先花 30 秒在 <a href="https://llapi.org/register">灵链云注册页</a> 完成注册，新用户注册即送体验额度。</p>
+          </section>
+
+          <section id="step-register">
+            <h2>二、第一步：注册灵链云并创建 API Key</h2>
+            <h3>2.1 注册与充值</h3>
+            <p>
+              打开 <a href="https://llapi.org/register">llapi.org/register</a> 完成注册，登录后在「会员中心」充值。
+              灵链云支持 <strong>支付宝与微信支付</strong>，最低小额即可开始，用多少充多少即可，无需一次大额囤余额。
+            </p>
+            <h3>2.2 创建 API Key</h3>
+            <p>进入控制台 →「API Key」→ 新建密钥。密钥形如 <code>sk-xxxxxxxx</code>，创建后请立即复制保存（仅显示一次）。</p>
+            <div class="cta-box">
+              <h2>还没有灵链云账号？</h2>
+              <p>注册即送体验额度，3 分钟跑通 Claude Code 国内直连。</p>
+              <div class="cta-btns">
+                <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+                <a class="btn btn-ghost" href="https://llapi.org/login">已有账号，去登录</a>
+              </div>
+            </div>
+          </section>
+
+          <section id="step-config">
+            <h2>三、第二步：配置 Claude Code 环境变量</h2>
+            <p>
+              Claude Code 通过 <code>ANTHROPIC_BASE_URL</code> 指定网关地址、<code>ANTHROPIC_AUTH_TOKEN</code> 指定密钥。
+              推荐写入 Claude Code 的 <code>settings.json</code>，这样对所有项目生效。
+            </p>
+            <p>编辑 <code>~/.claude/settings.json</code>（Windows 为 <code>%USERPROFILE%\.claude\settings.json</code>），加入 <code>env</code> 字段：</p>
+            <pre><code>{
+  <span class="cmt">// 灵链云 Claude Code 兼容接入配置</span>
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://llapi.org/v1",
+    "ANTHROPIC_AUTH_TOKEN": "sk-你的灵链云密钥",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-5"
+  }
+}</code></pre>
+            <p class="cmt-note"><small>说明：模型名以灵链云控制台「可用模型」为准，可先请求 <code>GET /v1/models</code> 查看支持列表。</small></p>
+            <h3>临时方式（仅当前终端）</h3>
+            <p>macOS / Linux（bash / zsh）：</p>
+            <pre><code><span class="k">export</span> ANTHROPIC_BASE_URL="https://llapi.org/v1"
+<span class="k">export</span> ANTHROPIC_AUTH_TOKEN="sk-你的灵链云密钥"</code></pre>
+            <p>Windows PowerShell：</p>
+            <pre><code><span class="k">$env:</span>ANTHROPIC_BASE_URL = "https://llapi.org/v1"
+<span class="k">$env:</span>ANTHROPIC_AUTH_TOKEN = "sk-你的灵链云密钥"</code></pre>
+          </section>
+
+          <section id="step-verify">
+            <h2>四、第三步：验证连通性</h2>
+            <p>保存配置后，重新打开终端并启动 Claude Code：</p>
+            <pre><code><span class="k">claude</span></code></pre>
+            <p>输入任意问题，例如 <code>/status</code> 查看当前账户与模型状态。能正常返回即表示接入成功。</p>
+            <p>也可以先不带交互、直接测一次 API 连通：</p>
+            <pre><code><span class="k">curl</span> https://llapi.org/v1/messages \
+  -H "x-api-key: sk-你的灵链云密钥" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{"model":"claude-sonnet-4-5","max_tokens":64,"messages":[{"role":"user","content":"ping"}]}'</code></pre>
+            <p class="cmt-note"><small>提示：部分中转站同时提供 OpenAI 兼容与 Anthropic 原生两种协议，若你的客户端走 <code>/v1/chat/completions</code>，见 <a href="openai-compatible.html">OpenAI 兼容接入说明</a>。</small></p>
+          </section>
+
+          <section id="troubleshoot">
+            <h2>五、常见报错与排查</h2>
+            <table>
+              <thead>
+                <tr><th>现象</th><th>原因</th><th>解决办法</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>401 / authentication_error</code></td>
+                  <td>API Key 错误或未复制完整</td>
+                  <td>在控制台重新生成 Key，确认前缀 <code>sk-</code> 完整写入</td>
+                </tr>
+                <tr>
+                  <td><code>402 / insufficient balance</code></td>
+                  <td>账户余额不足</td>
+                  <td>前往会员中心充值后重试</td>
+                </tr>
+                <tr>
+                  <td><code>404 model not found</code></td>
+                  <td>模型名与网关不一致</td>
+                  <td>调用 <code>/v1/models</code> 查看可用模型名后替换</td>
+                </tr>
+                <tr>
+                  <td>请求超时 / 连接失败</td>
+                  <td>本地网络到网关不通</td>
+                  <td>检查是否配置了冲突的代理；确认域名可直连</td>
+                </tr>
+                <tr>
+                  <td>报错里地址仍是 api.anthropic.com</td>
+                  <td>环境变量未生效</td>
+                  <td>确认写入 <code>settings.json</code> 的 env 块并重启终端</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="faq">
+            <h2>六、常见问题 FAQ</h2>
+            <h3>用中转站跑 Claude Code 安全吗？</h3>
+            <p>
+              灵链云走网关统一鉴权与用量记录，请求不绑定你的 Claude 个人账号，也就不会因为中转调用影响你个人账号。
+              建议不要把敏感密钥与生产代码明文放在一起，Key 仅限本人使用。
+            </p>
+            <h3>和官方 Claude API 有什么区别？</h3>
+            <p>
+              核心差异在接入方式与付费：官方需要海外网络 + 外币卡；灵链云提供国内直连地址与支付宝 / 微信充值，
+              并统一管理多个模型。官方对数据合规要求极严的场景仍是首选，灵链云适合国内团队、个人开发者的日常开发与工具调用。
+            </p>
+            <h3>充值余额可以退款吗？</h3>
+            <p>
+              支持按实际消费结算；建议小额多次充值。具体退款与开票规则以控制台「会员中心」说明为准。
+            </p>
+          </section>
+        </article>
+
+        <div class="cta-box">
+          <h2>现在就把 Claude Code 接进来</h2>
+          <p>注册领取体验额度，国内直连、余额透明、按量计费，3 分钟开始 AI 编程。</p>
+          <div class="cta-btns">
+            <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+            <a class="btn btn-ghost" href="https://guide.llapi.org">查看完整接入文档</a>
+          </div>
+        </div>
+
+        <section class="related" aria-label="相关阅读">
+          <h2>相关阅读</h2>
+          <div class="related-grid">
+            <a class="related-card" href="codex-setup.html">
+              <b>Codex CLI 配置教程</b>
+              <span>用灵链云跑 OpenAI Codex，改 config.toml 即可。</span>
+            </a>
+            <a class="related-card" href="openai-compatible.html">
+              <b>OpenAI 兼容 API 说明</b>
+              <span>一个 Base URL 同时接入多款模型。</span>
+            </a>
+            <a class="related-card" href="api-proxy.html">
+              <b>AI API 中转站怎么选</b>
+              <span>透明计费、稳定性与售后评估清单。</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div>© 2026 灵链云（llapi.org）. All Rights Reserved.</div>
+        <div class="footer-links">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code 接入</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">接入文档</a><a href="blog/index.html">博客</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

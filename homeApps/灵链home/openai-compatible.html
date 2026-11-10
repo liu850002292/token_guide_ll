@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenAI 兼容 API 接入指南｜一个 Base URL 调用多款模型 - 灵链云</title>
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="OpenAI 兼容 API 怎么接入？把 Base URL 换成灵链云地址，一行不改即可调用 Claude、GPT、Gemini 等多款模型。含 Python / Node / curl 示例与常见客户端配置。"
+    />
+    <meta
+      name="keywords"
+      content="OpenAI兼容API,Base URL,API接入,OpenAI SDK,大模型API,多模型聚合,灵链云,Claude API,GPT API,Gemini API"
+    />
+    <link rel="canonical" href="https://llapi.org/openai-compatible.html" />
+    <meta name="theme-color" content="#edf5fb" />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="灵链云" />
+    <meta property="og:title" content="OpenAI 兼容 API 接入：一个 Base URL 调用多款模型" />
+    <meta
+      property="og:description"
+      content="把 Base URL 换成灵链云地址，一行不改即可调用 Claude、GPT、Gemini 等多款模型。"
+    />
+    <meta property="og:url" content="https://llapi.org/openai-compatible.html" />
+    <meta property="og:image" content="https://llapi.org/assets/logo-256.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="OpenAI 兼容 API 接入：一个 Base URL 调用多款模型" />
+    <meta
+      name="twitter:description"
+      content="把 Base URL 换成灵链云地址，一行不改即可调用 Claude、GPT、Gemini 等多款模型。"
+    />
+    <link rel="icon" type="image/png" sizes="80x80" href="./assets/logo-80.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "OpenAI 兼容 API 接入：一个 Base URL 调用多款模型",
+        "description": "把 Base URL 换成灵链云地址，一行不改即可调用 Claude、GPT、Gemini 等多款模型。",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": "https://llapi.org/openai-compatible.html",
+        "publisher": {
+          "@type": "Organization",
+          "name": "灵链云",
+          "url": "https://llapi.org/"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "OpenAI 兼容 API 是什么意思？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "指接口格式与 OpenAI 官方 /v1/chat/completions 一致。任何按 OpenAI 格式写的 SDK 或客户端，只要换掉 Base URL 和 API Key，就能直接调用灵链云聚合的其它模型，无需改代码。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "换 Base URL 会影响已有代码吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不会。OpenAI 兼容协议是行业标准，多数客户端（ChatBox、LobeChat、NextChat、Cherry Studio 等）和 SDK 只需在配置里改 Base URL 与 Key 即可。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "一个 Key 能同时调用 Claude 和 GPT 吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可以。灵链云通过一个网关聚合多款模型，你只需在请求参数中切换 model 名即可，Key、Base URL、用量统计全部统一。"
+            }
+          }
+        ]
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf5fb;
+        --bg-cool: #e4eff8;
+        --paper: rgba(248, 252, 255, 0.84);
+        --paper-solid: #f7fbfe;
+        --ink: #1b2b43;
+        --text: #4b5e74;
+        --muted: #708297;
+        --line: rgba(56, 91, 128, 0.16);
+        --blue: #3f6db6;
+        --blue-deep: #2b446b;
+        --blue-soft: #dce9f8;
+        --coral: #608fc2;
+        --coral-soft: #e3eef9;
+        --lime: #82cbd1;
+        --lime-soft: #e0f2f4;
+        --aqua: #68b8c1;
+        --aqua-soft: #dff0f3;
+        --code-bg: #16233a;
+        --code-ink: #e7eefb;
+        --shadow: 0 20px 58px rgba(45, 75, 108, 0.12);
+        --shadow-small: 0 10px 28px rgba(45, 75, 108, 0.08);
+        --sans: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+      body {
+        margin: 0;
+        background: var(--bg-cool);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.75;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--blue); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      img { display: block; max-width: 100%; }
+      .shell { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(237, 245, 251, 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 62px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); flex-shrink: 0; }
+      .brand:hover { text-decoration: none; }
+      .brand strong { font-size: 17px; }
+      .brand small { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .nav-links a {
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .nav-links a:hover { background: var(--blue-soft); color: var(--blue-deep); text-decoration: none; }
+      .nav-links .nav-cta {
+        background: var(--blue);
+        color: #fff;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .nav-links .nav-cta:hover { background: var(--blue-deep); color: #fff; }
+      @media (max-width: 760px) {
+        .nav-links a:not(.nav-cta) { display: none; }
+      }
+
+      main { padding: 34px 0 60px; }
+      .breadcrumb { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      .breadcrumb a { color: var(--muted); }
+      .page-title {
+        font-size: clamp(26px, 4.4vw, 40px);
+        line-height: 1.3;
+        margin: 8px 0 10px;
+        letter-spacing: -0.01em;
+      }
+      .page-sub { font-size: 17px; color: var(--text); max-width: 72ch; margin: 0 0 26px; }
+
+      .lead-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow-small);
+        font-size: 15px;
+      }
+      .lead-card strong { color: var(--blue-deep); }
+      .lead-card .step-list { margin: 10px 0 2px; padding-left: 20px; }
+      .lead-card .step-list li { margin: 4px 0; }
+
+      .toc {
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin: 26px 0;
+        font-size: 14px;
+      }
+      .toc summary { cursor: pointer; font-weight: 600; color: var(--blue-deep); }
+      .toc ol { margin: 10px 0 0; padding-left: 20px; }
+      .toc a { color: var(--text); }
+
+      .prose { margin-top: 30px; }
+      .prose section { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 26px 30px; margin-bottom: 22px; box-shadow: var(--shadow-small); }
+      .prose h2 { font-size: 23px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .prose h3 { font-size: 17px; margin: 24px 0 8px; color: var(--blue-deep); }
+      .prose p { margin: 10px 0; color: var(--text); }
+      .prose strong { color: var(--ink); }
+      .prose ul, .prose ol { margin: 10px 0; padding-left: 22px; color: var(--text); }
+      .prose li { margin: 6px 0; }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        padding: 2px 6px;
+        border-radius: 6px;
+        word-break: break-all;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.6;
+        margin: 14px 0;
+      }
+      pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+      pre .cmt { color: #8aa2c0; }
+      pre .k { color: #ffd479; }
+
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+      th { background: var(--blue-soft); color: var(--blue-deep); }
+      td { color: var(--text); }
+      @media (max-width: 640px) { .prose section { padding: 20px 16px; } table { font-size: 12.5px; } }
+
+      .cta-box {
+        background: linear-gradient(120deg, var(--blue-deep), var(--blue) 60%, var(--aqua));
+        color: #fff;
+        border-radius: 18px;
+        padding: 30px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      .cta-box h2 { margin: 0 0 8px; font-size: 24px; border: none; padding: 0; color: #fff; }
+      .cta-box p { color: rgba(255, 255, 255, 0.85); margin: 0 auto 18px; max-width: 56ch; }
+      .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn { display: inline-block; padding: 11px 22px; border-radius: 10px; font-weight: 600; font-size: 15px; }
+      .btn-primary { background: #fff; color: var(--blue-deep); }
+      .btn-primary:hover { text-decoration: none; opacity: 0.92; }
+      .btn-ghost { border: 1px solid rgba(255, 255, 255, 0.6); color: #fff; }
+      .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+
+      .related { margin-top: 26px; }
+      .related h2 { font-size: 19px; }
+      .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .related-card {
+        display: block;
+        background: var(--paper-solid);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        color: var(--text);
+        box-shadow: var(--shadow-small);
+      }
+      .related-card:hover { border-color: var(--blue); text-decoration: none; transform: translateY(-2px); }
+      .related-card b { display: block; color: var(--ink); margin-bottom: 4px; font-size: 15px; }
+
+      .site-footer { border-top: 1px solid var(--line); background: var(--bg); padding: 26px 0; }
+      .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+      .footer-links a { color: var(--muted); margin-left: 16px; }
+      .footer-links a:hover { color: var(--blue); }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell nav">
+        <a class="brand" href="/" aria-label="灵链云首页">
+          <img src="./assets/logo-80.png" width="32" height="32" alt="灵链云 logo" decoding="async" />
+          <span><strong>灵链云</strong><small>AI gateway for builders</small></span>
+        </a>
+        <nav class="nav-links" aria-label="站内导航">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">文档</a><a href="blog/index.html">博客</a>
+          <a class="nav-cta" href="https://llapi.org/register">免费注册</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="shell">
+        <p class="breadcrumb"><a href="/">灵链云首页</a> › OpenAI 兼容 API 接入指南</p>
+        <h1 class="page-title">OpenAI 兼容 API 接入：一个 Base URL 调用多款模型</h1>
+        <p class="page-sub">
+          OpenAI 的接口格式已经成了 AI 行业的事实标准。灵链云把 Claude、GPT、Gemini 等主流模型统一封装成
+          OpenAI 兼容协议，你只需要一个 Base URL 和一个 API Key，就能在应用里自由切换模型，代码一行不用改。
+        </p>
+
+        <div class="lead-card">
+          <strong>为什么说「OpenAI 兼容」价值很大：</strong>
+          <ul class="step-list">
+            <li><strong>迁移成本低：</strong>现有 OpenAI SDK 与客户端，只改 Base URL 和 Key 即可；</li>
+            <li><strong>统一管理：</strong>一个 Key 管所有模型，Token 用量、余额、账单全部集中；</li>
+            <li><strong>多模型可用：</strong>按需切换 <code>model</code> 参数，对比效果、降本增效都很方便。</li>
+          </ul>
+        </div>
+
+        <nav class="toc" aria-label="目录">
+          <details open>
+            <summary>本页目录</summary>
+            <ol>
+              <li><a href="#what">什么是 OpenAI 兼容 API</a></li>
+              <li><a href="#quick">三步接入：注册、建 Key、改 Base URL</a></li>
+              <li><a href="#sdk">Python / Node / curl 调用示例</a></li>
+              <li><a href="#clients">常见客户端配置（ChatBox / LobeChat 等）</a></li>
+              <li><a href="#models">支持切换的模型类型</a></li>
+              <li><a href="#faq">常见问题 FAQ</a></li>
+            </ol>
+          </details>
+        </nav>
+
+        <article class="prose">
+          <section id="what">
+            <h2>一、什么是 OpenAI 兼容 API</h2>
+            <p>
+              OpenAI 兼容（OpenAI-Compatible）指接口请求与响应格式与 OpenAI 官方
+              <code>/v1/chat/completions</code> 保持一致，包含 <code>model</code>、<code>messages</code>、
+              <code>stream</code> 等字段。凡是按这个协议写的 SDK、客户端、脚本，都可以通过「换地址 + 换 Key」
+              的方式接入灵链云聚合的其它模型，业务代码保持不变。
+            </p>
+            <p>灵链云的统一接入地址：</p>
+            <pre><code>Base URL: https://llapi.org/v1</code></pre>
+          </section>
+
+          <section id="quick">
+            <h2>二、三步接入</h2>
+            <h3>第 1 步：注册并充值</h3>
+            <p>
+              访问 <a href="https://llapi.org/register">llapi.org/register</a> 注册，登录后在会员中心小额充值
+              （支持支付宝 / 微信）。新用户注册即送体验额度。
+            </p>
+            <h3>第 2 步：创建 API Key</h3>
+            <p>控制台 →「API Key」→ 新建，复制保存 <code>sk-xxxxxxxx</code> 密钥。</p>
+            <h3>第 3 步：改 Base URL 与 Key</h3>
+            <p>把代码或客户端里的 API 地址替换为 <code>https://llapi.org/v1</code>，密钥替换为灵链云 Key，即可使用。</p>
+            <div class="cta-box">
+              <h2>注册即送体验额度</h2>
+              <p>一个 Key 接入多款模型，余额透明、按量计费。</p>
+              <div class="cta-btns">
+                <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+                <a class="btn btn-ghost" href="https://llapi.org/login">去登录</a>
+              </div>
+            </div>
+          </section>
+
+          <section id="sdk">
+            <h2>三、Python / Node / curl 调用示例</h2>
+            <h3>Python（OpenAI SDK）</h3>
+            <pre><code><span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+client = OpenAI(
+    api_key="sk-你的灵链云密钥",
+    base_url="https://llapi.org/v1",
+)
+
+resp = client.chat.completions.create(
+    model="claude-sonnet-4-5",  <span class="cmt"># 模型名以控制台为准，可自由切换</span>
+    messages=[{"role": "user", "content": "你好"}],
+)
+print(resp.choices[0].message.content)</code></pre>
+            <h3>Node.js（OpenAI SDK）</h3>
+            <pre><code><span class="k">import</span> OpenAI <span class="k">from</span> "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-你的灵链云密钥",
+  baseURL: "https://llapi.org/v1",
+});
+
+const resp = await client.chat.completions.create({
+  model: "gpt-5",
+  messages: [{ role: "user", content: "你好" }],
+});
+console.log(resp.choices[0].message.content);</code></pre>
+            <h3>curl</h3>
+            <pre><code><span class="k">curl</span> https://llapi.org/v1/chat/completions \
+  -H "Authorization: Bearer sk-你的灵链云密钥" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-5","messages":[{"role":"user","content":"ping"}]}'</code></pre>
+          </section>
+
+          <section id="clients">
+            <h2>四、常见客户端配置</h2>
+            <p>多数 AI 聊天客户端都支持自定义 API 地址，只需填写：</p>
+            <table>
+              <thead>
+                <tr><th>客户端</th><th>API 地址（Base URL）</th><th>备注</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>ChatBox</td><td><code>https://llapi.org/v1</code></td><td>选 OpenAI API 兼容模式</td></tr>
+                <tr><td>LobeChat</td><td><code>https://llapi.org/v1</code></td><td>自定义 OpenAI 服务商</td></tr>
+                <tr><td>NextChat</td><td><code>https://llapi.org/v1</code></td><td>填入 API 地址与 Key</td></tr>
+                <tr><td>Cherry Studio</td><td><code>https://llapi.org/v1</code></td><td>自定义模型提供方</td></tr>
+                <tr><td>OpenCode / Codex</td><td><code>https://llapi.org/v1</code></td><td>见 <a href="codex-setup.html">Codex 配置教程</a></td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="models">
+            <h2>五、支持切换的模型类型</h2>
+            <ul>
+              <li><strong>文本对话：</strong>Claude、GPT、Gemini 及国产主流模型；</li>
+              <li><strong>推理模型：</strong>支持深度思考类模型按需调用；</li>
+              <li><strong>图片生成 / 编辑：</strong>文生图、参考图编辑接口；</li>
+              <li><strong>Embedding 与语音：</strong>向量与音频能力，同一套网关统一管理。</li>
+            </ul>
+            <p>完整模型列表与实时价格见 <a href="https://guide.llapi.org">灵链云文档</a> 或控制台。</p>
+          </section>
+
+          <section id="faq">
+            <h2>六、常见问题 FAQ</h2>
+            <h3>换 Base URL 需要改多少代码？</h3>
+            <p>
+              通常只需改客户端或 SDK 初始化处的 Base URL 与 API Key。标准 OpenAI 兼容场景下，业务代码完全不用动。
+            </p>
+            <h3>一个 Key 能同时用多个模型吗？</h3>
+            <p>
+              可以。密钥与用量统一，调用时通过 <code>model</code> 参数切换，无需为每个模型单独申请 Key。
+            </p>
+            <h3>怎么确认模型没被「偷换」？</h3>
+            <p>
+              灵链云强调渠道与计费透明，控制台可查看每次调用的模型、Token 与费用明细。建议新用户先用赠送额度
+              小量测试，跑通后再按需充值。
+            </p>
+          </section>
+        </article>
+
+        <div class="cta-box">
+          <h2>一个 Key 接入多款模型</h2>
+          <p>注册领取体验额度，国内直连、余额透明、按量计费。</p>
+          <div class="cta-btns">
+            <a class="btn btn-primary" href="https://llapi.org/register">免费注册</a>
+            <a class="btn btn-ghost" href="https://guide.llapi.org">查看完整接入文档</a>
+          </div>
+        </div>
+
+        <section class="related" aria-label="相关阅读">
+          <h2>相关阅读</h2>
+          <div class="related-grid">
+            <a class="related-card" href="claude-code.html">
+              <b>Claude Code 接入配置</b>
+              <span>国内直连 Claude Code 的三步教程。</span>
+            </a>
+            <a class="related-card" href="codex-setup.html">
+              <b>Codex CLI 配置教程</b>
+              <span>用灵链云跑 OpenAI Codex，改 config.toml 即可。</span>
+            </a>
+            <a class="related-card" href="api-proxy.html">
+              <b>AI API 中转站怎么选</b>
+              <span>透明计费、稳定性与售后评估清单。</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div>© 2026 灵链云（llapi.org）. All Rights Reserved.</div>
+        <div class="footer-links">
+          <a href="/">首页</a>
+          <a href="claude-code.html">Claude Code 接入</a>
+          <a href="codex-setup.html">Codex 配置</a>
+          <a href="openai-compatible.html">OpenAI 兼容</a>
+          <a href="api-proxy.html">中转站推荐</a>
+          <a href="https://guide.llapi.org">接入文档</a><a href="blog/index.html">博客</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

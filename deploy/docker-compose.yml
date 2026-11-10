@@ -1,0 +1,21 @@
+services:
+  guide:
+    image: ${IMAGE_REPOSITORY:-850002292/sub2api-guide}:${IMAGE_TAG:-latest}
+    init: true
+    pull_policy: always
+    container_name: sub2api-guide
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NUXT_UPDATE_IMAGE_REPOSITORY: ${IMAGE_REPOSITORY:-850002292/sub2api-guide}
+      NUXT_UPDATE_CONTAINER_NAME: sub2api-guide
+    # DOCKER_GID 由 docker-deploy.sh 写入 .env；对应宿主机 docker.sock 组 ID
+    group_add:
+      - "${DOCKER_GID:-0}"
+    ports:
+      - "${HOST_BIND_ADDRESS:-0.0.0.0}:${HOST_PORT:-3000}:3000"
+    volumes:
+      - ./data:/data
+      # 后台「系统更新」需要；不需要可删除下一行
+      - /var/run/docker.sock:/var/run/docker.sock

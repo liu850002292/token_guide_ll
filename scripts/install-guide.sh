@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# 兼容入口：本机准备 + 启动（不远程 SSH）。
+# 推荐直接使用 deploy/docker-deploy.sh 做准备，再 docker compose up -d。
+set -euo pipefail
+
+VERSION="latest"
+IMAGE_REPOSITORY="850002292/sub2api-guide"
+INSTALL_DIR=""
+PORT="3000"
+HOST_BIND_ADDRESS="0.0.0.0"
+
+usage() {
+  cat <<USAGE
+Usage: install-guide.sh [options]
+
+本机安装（非远程）：准备文件并 docker compose up -d。
+
+Options:
+  --version VERSION          Image tag for this install run. Default: latest.
+  --image IMAGE              Image repository. Default: 850002292/sub2api-guide.
+  --install-dir DIR          Install directory. Default: current directory.
+  --port PORT                Loopback host port. Default: 3000.
+  --bind-address ADDRESS     Host bind address. Default: 0.0.0.0.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version) VERSION="${2:?}"; shift 2 ;;
+    --image) IMAGE_REPOSITORY="${2:?}"; shift 2 ;;
+    --install-dir) INSTALL_DIR="${2:?}"; shift 2 ;;
+    --port) PORT="${2:?}"; shift 2 ;;
+    --bind-address) HOST_BIND_ADDRESS="${2:?}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+[[ -n "${INSTALL_DIR}" ]] || INSTALL_DIR="$(pwd)"
+command -v docker >/dev/null 2>&1 || { echo "Docker is required." >&2; exit 1; }
+
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "Docker Compose is required." >&2
+  exit 1
+fi
+
+mkdir -p "${INSTALL_DIR}"
+cd "${INSTALL_DIR}"
+
+export IMAGE_REPOSITORY IMAGE_TAG="${VERSION}" HOST_PORT="${PORT}" HOST_BIND_ADDRESS
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/../deploy/docker-deploy.sh" ]]; then
+  bash "${SCRIPT_DIR}/../deploy/docker-deploy.sh"
+else
+  command -v gh >/dev/null 2>&1 || { echo "Private repository access requires GitHub CLI. Run gh auth login first." >&2; exit 1; }
+  gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh \
+    -H 'Accept: application/vnd.github.raw+json' | bash
+fi
+
+echo "Pulling image..."
+# shellcheck disable=SC1091
+set -a
+# 读取 .env 中的镜像仓库和端口；版本号仅对本次安装命令生效
+# shellcheck disable=SC1091
+source <(grep -E '^(IMAGE_REPOSITORY|IMAGE_TAG|HOST_PORT|HOST_BIND_ADDRESS)=' .env | sed 's/\r$//')
+set +a
+IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-850002292/sub2api-guide}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+HOST_PORT="${HOST_PORT:-3000}"
+HOST_BIND_ADDRESS="${HOST_BIND_ADDRESS:-0.0.0.0}"
+
+docker pull "${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+"${COMPOSE[@]}" up -d --remove-orphans
+
+echo "Checking health"
+for _ in $(seq 1 30); do
+  if curl -fsS "http://127.0.0.1:${HOST_PORT}/api/health" >/dev/null; then
+    echo "Guide is running using ${IMAGE_REPOSITORY}:${IMAGE_TAG}."
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "Health check failed. Inspect logs with: ${COMPOSE[*]} logs guide" >&2
+exit 1

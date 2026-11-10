@@ -1,0 +1,180 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*.*.*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example v2.2.11
+        required: true
+        type: string
+      publish_latest:
+        description: Also update the latest image tag
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish image and GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+    env:
+      IMAGE_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY || '850002292/sub2api-guide' }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate release
+        id: release
+        shell: bash
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_LATEST: ${{ inputs.publish_latest }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME}"
+            publish_latest=true
+          else
+            version="${DISPATCH_VERSION}"
+            publish_latest="${DISPATCH_LATEST}"
+          fi
+
+          if [[ ! "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must look like v2.2.11." >&2
+            exit 1
+          fi
+
+          package_version="$(node -p "require('./package.json').version")"
+          if [[ "${version#v}" != "${package_version}" ]]; then
+            echo "Release ${version} does not match package.json version ${package_version}." >&2
+            exit 1
+          fi
+
+          if [[ "${version}" == *-* ]]; then
+            publish_latest=false
+            prerelease=true
+          else
+            prerelease=false
+          fi
+
+          tags="${IMAGE_REPOSITORY}:${version}"
+          if [[ "${publish_latest}" == "true" ]]; then
+            tags="${tags}"$'\n'"${IMAGE_REPOSITORY}:latest"
+          fi
+
+          {
+            echo "version=${version}"
+            echo "prerelease=${prerelease}"
+            echo "tags<<EOF"
+            echo "${tags}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Require successful CI for this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deadline=$((SECONDS + 1200))
+          while (( SECONDS < deadline )); do
+            response="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&per_page=20")"
+            success_url="$(jq -r '[.workflow_runs[] | select(.conclusion == "success")][0].html_url // empty' <<<"${response}")"
+
+            if [[ -n "${success_url}" ]]; then
+              echo "CI passed for ${GITHUB_SHA}: ${success_url}"
+              exit 0
+            fi
+
+            latest_status="$(jq -r '.workflow_runs[0].status // empty' <<<"${response}")"
+            latest_conclusion="$(jq -r '.workflow_runs[0].conclusion // empty' <<<"${response}")"
+            latest_url="$(jq -r '.workflow_runs[0].html_url // empty' <<<"${response}")"
+
+            if [[ "${latest_status}" == "completed" ]]; then
+              echo "CI did not pass for ${GITHUB_SHA}: ${latest_conclusion} ${latest_url}" >&2
+              exit 1
+            fi
+
+            echo "Waiting for CI on ${GITHUB_SHA} (${latest_status:-not started})..."
+            sleep 15
+          done
+
+          echo "Timed out waiting for CI on ${GITHUB_SHA}." >&2
+          exit 1
+
+      - name: Verify Docker Hub credentials
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -z "${DOCKERHUB_USERNAME}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "Configure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN in repository or production environment secrets." >&2
+            exit 1
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Build and publish image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            APP_VERSION=${{ steps.release.outputs.version }}
+          tags: ${{ steps.release.outputs.tags }}
+          cache-from: type=gha,scope=sub2api-guide-linux-amd64
+          cache-to: type=gha,mode=max,scope=sub2api-guide-linux-amd64
+          provenance: mode=max
+          sbom: true
+
+      - name: Create or update GitHub release
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          prerelease_args=()
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            prerelease_args+=(--prerelease)
+          fi
+
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            gh release edit "${VERSION}" \
+              --title "sub2api-guide ${VERSION}" \
+              "${prerelease_args[@]}"
+          else
+            gh release create "${VERSION}" \
+              --target "${GITHUB_SHA}" \
+              --title "sub2api-guide ${VERSION}" \
+              --generate-notes \
+              "${prerelease_args[@]}"
+          fi

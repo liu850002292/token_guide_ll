@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# 禁止爬取后台与控制台等非公开页面
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+
+Sitemap: https://llapi.org/sitemap.xml

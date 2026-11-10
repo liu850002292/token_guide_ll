@@ -1,0 +1,21 @@
+# 示例文件。正式本机部署请使用：
+#   gh api repos/liu850002292/token_guide_ll/contents/deploy/docker-deploy.sh -H 'Accept: application/vnd.github.raw+json' | bash
+# 完整模板见 deploy/docker-compose.yml
+services:
+  guide:
+    image: ${IMAGE_REPOSITORY:-850002292/sub2api-guide}:${IMAGE_TAG:-latest}
+    pull_policy: always
+    container_name: sub2api-guide
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NUXT_UPDATE_IMAGE_REPOSITORY: ${IMAGE_REPOSITORY:-850002292/sub2api-guide}
+      NUXT_UPDATE_CONTAINER_NAME: sub2api-guide
+    group_add:
+      - "${DOCKER_GID:-0}"
+    ports:
+      - "${HOST_BIND_ADDRESS:-0.0.0.0}:${HOST_PORT:-3000}:3000"
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
