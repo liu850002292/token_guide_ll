@@ -36,6 +36,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [[ -n "${INSTALL_DIR}" ]] || INSTALL_DIR="$(pwd)"
 command -v docker >/dev/null 2>&1 || { echo "Docker is required." >&2; exit 1; }
 
@@ -53,7 +54,6 @@ cd "${INSTALL_DIR}"
 
 export IMAGE_REPOSITORY IMAGE_TAG="${VERSION}" HOST_PORT="${PORT}" HOST_BIND_ADDRESS
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "${SCRIPT_DIR}/../deploy/docker-deploy.sh" ]]; then
   bash "${SCRIPT_DIR}/../deploy/docker-deploy.sh"
 else

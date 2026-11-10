@@ -109,6 +109,7 @@ NUXT_IP_HASH_SALT
 - `Docker Build`：等待同一提交的 `CI` 成功后构建并上传 `linux/amd64` 镜像，
   稳定版更新 `latest`，每个提交保留 `sha-<完整提交号>` 标签，并复用构建缓存。
   PR 只验证构建；预发布版本只上传提交号标签，不覆盖 `latest`。
+  手动运行 `Docker Build` 只验证构建；手动运行 `CI` 不触发上传。
 
 在 GitHub 仓库的 `production` Environment 中配置以下 Actions secrets：
 
