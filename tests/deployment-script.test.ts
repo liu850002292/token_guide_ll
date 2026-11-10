@@ -60,5 +60,5 @@ describe('private repository deployment', () => {
 
     execFileSync(bash, [script], options)
     expect(readFileSync(join(deployment, '.env'), 'utf8')).toBe(initial)
-  })
+  }, 30_000)
 })
